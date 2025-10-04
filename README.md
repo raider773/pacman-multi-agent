@@ -1,9 +1,19 @@
 # pacman-multi-agent
 Pacman game played by four ghost agents and one pacman agent
 
+
+la grid que sea aleatoria. tene en cuenta lo siguiente:
+siempre tiene queh aber caminos abiertos.
+si llegas al finaly el camino esta abierto, del otro lado tiene que haber una entrada tambien.
+
+
 para cada agente usa distintso algoritmos.
 
-heuristicas
-a*
-bdf
-etc
+
+
+clase padre para los agentes, movimientos paredes etc.
+
+heuristicas.
+a*.
+bdf.
+etc.
