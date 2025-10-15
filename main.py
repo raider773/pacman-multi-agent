@@ -7,8 +7,73 @@
 
 #fijate igual por que algunos algoritmos son de grafos
 
-#agregar atributo extra de teleport o de puerta. si es peurta y esta en true o algo asi lo 
+#agregar atributo extra de puerta. si es peurta y esta en true o algo asi lo 
 #pones como walkable
+
+
+
+#finite state machine (FSM) para estado scatrter, chase, idle, running away, eaten
+
+"""
+ Pac-Man (AI version)
+Goal:
+
+Navigate the maze collecting pellets while avoiding ghosts.
+
+Algorithms:
+Purpose	Algorithm	Why
+Navigation toward pellets	A*	Finds shortest path to the nearest pellet efficiently.
+Ghost avoidance	Dijkstra with “threat cost”	Add extra cost for tiles near ghosts → Pac-Man detours around them.
+Frightened chasing (optional)	Greedy BFS toward nearest ghost	When ghosts are frightened, Pac-Man hunts them.
+
+This lets Pac-Man use weighted pathfinding and heuristics to feel “intelligent.”
+
+Blinky (Red Ghost)
+Classic Role: The direct chaser.
+Behavior & Algorithms:
+State	Algorithm	Target / Logic
+Chase	A*	Target Pac-Man’s current position (straight pursuit).
+Scatter	Breadth-First Search (BFS)	Go to assigned corner tile. BFS guarantees shortest path in uniform grid.
+Frightened	Random walk (uniform random valid move)	Emulates panic; no pathfinding.
+Eaten	Dijkstra	Fast route back to ghost house (home), supports weighted speeds if you add them later.
+
+→ Blinky is your reference A* ghost — deterministic, efficient, always finds Pac-Man.
+ Pinky (Pink Ghost)
+Classic Role: The ambusher.
+Behavior & Algorithms:
+State	Algorithm	Target / Logic
+Chase	A* (with look-ahead target)	Target 4 tiles ahead of Pac-Man’s direction.
+Scatter	BFS	Corner.
+Frightened	Randomized DFS	DFS creates unpredictable wandering (fewer reversals).
+Eaten	A*	Return to home directly.
+
+→ Pinky still uses A*, but you’ll adjust the target position heuristic. This teaches how different heuristics affect pursuit.
+
+ Inky (Blue Ghost)
+Classic Role: The “tricky” one — uses vector math with Blinky.
+Behavior & Algorithms:
+State	Algorithm	Target / Logic
+Chase	Hybrid: BFS for pathfinding + computed vector target	Target = 2×(Pac-Man ahead position) – (Blinky position). Path found via BFS.
+Scatter	Greedy Best-First Search	Head toward its corner, but only greedily (not guaranteed shortest path).
+Frightened	Random weighted movement	Weighted by distance from Pac-Man (moves away if close).
+Eaten	Dijkstra	Home route.
+
+→ Inky gives you practice combining target prediction + BFS, and best-first search, which uses only the heuristic, not full A*.
+
+ Clyde (Orange Ghost)
+Classic Role: Shy / unpredictable.
+Behavior & Algorithms:
+State	Algorithm	Target / Logic
+Chase	Conditional BFS or Random BFS	If far from Pac-Man (>8 tiles), chase him via BFS; if close, head to corner randomly.
+Scatter	DFS	Wanders toward corner without optimal path (looks more hesitant).
+Frightened	Random movement	Simple, chaotic.
+Eaten	BFS	Straight to home.
+
+→ Clyde demonstrates behavioral switching and simpler pathfinding (BFS, DFS), showing how search depth and branching affect patterns.
+
+
+
+"""
 
 #https://itnext.io/how-to-create-pac-man-in-python-in-300-lines-of-code-or-less-part-1-288d54baf939
 #aca arriba esta el mapa que estas usando
@@ -17,6 +82,7 @@
 import sys
 import pygame as pg
 import yaml
+from random import randint
 from environment.env import Environment
 
 if not pg.font:
@@ -24,7 +90,6 @@ if not pg.font:
 if not pg.mixer:
     print("Warning, sound disabled")
     
-
 # Initialize Pygame
 pg.init()
 
@@ -35,13 +100,87 @@ with open("conf/env.yaml") as f:
 env = Environment()
 env.fill_matrix(config["height"], config["width"], config["tile_size"])
 env.load_layout(config["original_layout"])
+
+
+
+class Agent():
     
+    def __init__(self, row, column, enviroment):
+        self.current_position = (row,column)
+        self.enviroment = enviroment
+        self.directions = {0:"up", 1:"right", 2:"down", 3:"left"}
+        self.color = (0,0,0)
+    
+    def move(self):
+        
+        raise NotImplementedError("Subclasses must implement move()")       
+    
+    def _check_valid_movement(self, next_position):
+        row, col = next_position              
+        try:
+            return self.enviroment.grid[row][col].walkable
+        except IndexError:
+            return False    
+        
+    def draw(self):       
+        tile = self.enviroment.grid[self.current_position[0]][self.current_position[1]]  
+        center_x = tile.rect.x + tile.rect.width // 2
+        center_y = tile.rect.y + tile.rect.height // 2     
+        radius = tile.rect.width // 2
+        pg.draw.circle(screen, (self.color), (center_x, center_y), radius)
+        
+ 
+class Pacman(Agent):
+    def __init__(self, row, column, enviroment):
+       super().__init__(row, column, enviroment)  
+       self.color = (randint(0,254), randint(0,254), randint(0,254))  
+       
+    def move(self):
+        can_move = False               
+        while can_move == False:
+            direction = self.directions[randint(0,3)]            
+            if direction == "up":
+                next_position = (self.current_position[0] - 1, self.current_position[1])
+            elif direction == "right":
+                next_position = (self.current_position[0], self.current_position[1] + 1)
+            elif direction == "down":
+                next_position = (self.current_position[0] + 1, self.current_position[1])
+            elif direction == "left":
+                next_position = (self.current_position[0], self.current_position[1] - 1)           
+            can_move = self._check_valid_movement(next_position)       
+        self.current_position = next_position        
+        
+        
+      
+        
+pacman_1 = Pacman(5,5,env)
+pacman_2 = Pacman(5,5,env)
+pacman_3 = Pacman(5,5,env)
+pacman_4 = Pacman(5,5,env)
+pacman_5 = Pacman(5,5,env)
+pacman_6 = Pacman(5,5,env)
+pacman_7 = Pacman(5,5,env)
+pacman_8 = Pacman(5,5,env)
+pacman_9 = Pacman(5,5,env)
+pacman_10 = Pacman(5,5,env)
+pacman_11 = Pacman(5,5,env)
+pacman_12 = Pacman(5,5,env)
+pacman_13 = Pacman(5,5,env)
+pacman_14 = Pacman(5,5,env)
+pacman_15 = Pacman(5,5,env)
+pacman_16 = Pacman(5,5,env)
+pacman_17 = Pacman(5,5,env)
+pacman_18 = Pacman(5,5,env)
+pacman_19 = Pacman(5,5,env)
 
 # --- Setup display ---
 screen = pg.display.set_mode((config["width"] * config["tile_size"], config["height"] * config["tile_size"]))
 pg.display.set_caption("Grid with Walls")
 
 clock = pg.time.Clock()
+
+last_move_time = 0 
+move_delay = 200    # move every 200 ms (0.2 seconds) 
 
 
 # --- Game loop ---
@@ -60,7 +199,55 @@ while running:
             if env.grid[y][x].walkable == False:
                 pg.draw.rect(screen, tuple(config["unwalkable_tile_color"]), env.grid[y][x].rect)
             else:
-                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), env.grid[y][x].rect)
+                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), env.grid[y][x].rect)               
+                
+      
+    current_time = pg.time.get_ticks()  
+    if current_time - last_move_time >= move_delay:
+        
+        pacman_1.move()        
+        pacman_2.move()   
+        pacman_3.move()   
+        pacman_4.move()   
+        pacman_5.move()   
+        pacman_6.move()   
+        pacman_7.move()   
+        pacman_8.move()   
+        pacman_9.move()   
+        pacman_10.move()   
+        pacman_11.move()   
+        pacman_12.move()   
+        pacman_13.move()   
+        pacman_14.move()   
+        pacman_15.move()   
+        pacman_16.move()   
+        pacman_17.move()   
+        pacman_18.move()   
+        pacman_19.move()       
+        
+        last_move_time = current_time
+           
+    pacman_1.draw()        
+    pacman_2.draw()  
+    pacman_3.draw()  
+    pacman_4.draw()   
+    pacman_5.draw()  
+    pacman_6.draw()   
+    pacman_7.draw()  
+    pacman_8.draw()    
+    pacman_9.draw()    
+    pacman_10.draw()  
+    pacman_11.draw()   
+    pacman_12.draw()  
+    pacman_13.draw()   
+    pacman_14.draw()  
+    pacman_15.draw()  
+    pacman_16.draw()  
+    pacman_17.draw()  
+    pacman_18.draw()  
+    pacman_19.draw()   
+        
+    
 
     pg.display.flip()
     clock.tick(60)
