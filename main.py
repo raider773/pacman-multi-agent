@@ -94,7 +94,7 @@ if not pg.mixer:
 # Initialize Pygame
 pg.init()
 
-with open("conf/env.yaml") as f:
+with open("conf/conf.yaml") as f:
     config = yaml.safe_load(f)
 
                     
@@ -109,6 +109,9 @@ hunter = Hunter(20,6,env)
 pursuer = Pursuer(26,24,env)
 catcher = Catcher(14,18,env)
 
+eater_list = [eater]
+chasers_list = []
+#chasers_list = [seeker, hunter, pursuer, catcher]
 
 # --- Setup display ---
 screen = pg.display.set_mode((config["width"] * config["tile_size"], config["height"] * config["tile_size"]))
@@ -118,7 +121,9 @@ clock = pg.time.Clock()
 last_move_time = 0 
 move_delay = 1000    
 
-# --- Game loop ---
+DEBUG = False  # Set to False to hide threat heatmap overlay
+font = pg.font.SysFont(None, 16)
+
 running = True
 while running:
     for event in pg.event.get():
@@ -131,49 +136,58 @@ while running:
     # Draw grid
     for y in range(config["height"]):
         for x in range(config["width"]):
-            if env.grid[y][x].walkable == False:
-                pg.draw.rect(screen, tuple(config["unwalkable_tile_color"]), env.grid[y][x].rect)
-            else:
-                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), env.grid[y][x].rect)       
-            
-            # Draw pellets
-            if env.grid[y][x].has_pellet == True:                
-                center_x = env.grid[y][x].rect.x + env.grid[y][x].rect.width // 2
-                center_y = env.grid[y][x].rect.y + env.grid[y][x].rect.height // 2     
-                radius = env.grid[y][x].rect.width // 6
-                pg.draw.circle(screen, tuple(config["pellet_color"]), (center_x, center_y), radius)
-                
-            # Draw hideout
-            if env.grid[y][x].hideout == True:
-                pg.draw.rect(screen, tuple(config["hideout_tile_color"]), env.grid[y][x].rect)   
-                
+            tile = env.grid[y][x]
 
-    env.create_graph(threat_agents_positions = [seeker.current_position, hunter.current_position,
-                                                pursuer.current_position, catcher.current_position], 
-                                                max_threat_level = 50, decay_rate = 0.15)
-            
-                
-    # Check time delay to move agents  
-    current_time = pg.time.get_ticks()  
-    if current_time - last_move_time >= move_delay:        
-        eater.move()   
-        seeker.move()
-        hunter.move()
-        pursuer.move()
-        catcher.move()
+            # Draw walkable/unwalkable tiles
+            if not tile.walkable:
+                pg.draw.rect(screen, tuple(config["unwalkable_tile_color"]), tile.rect)
+            else:
+                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), tile.rect)
+
+            # Draw pellets
+            if tile.has_pellet:
+                center_x = tile.rect.x + tile.rect.width // 2
+                center_y = tile.rect.y + tile.rect.height // 2
+                radius = tile.rect.width // 6
+                pg.draw.circle(screen, tuple(config["pellet_color"]), (center_x, center_y), radius)
+
+            # Draw hideout
+            if tile.hideout:
+                pg.draw.rect(screen, tuple(config["hideout_tile_color"]), tile.rect)
+
+            # DEBUG: overlay threat heatmap
+            if DEBUG and tile.walkable and env.current_graph:
+                node = env.current_graph.get((y, x))
+                if node:
+                    intensity = int((node.threat_level / config["max_threat_level"]) * 255)
+                    intensity = max(0, min(intensity, 255))
+                    heat_surface = pg.Surface((tile.rect.width, tile.rect.height), pg.SRCALPHA)
+                    heat_surface.fill((intensity, 0, 0, 255))
+                    screen.blit(heat_surface, (tile.rect.x, tile.rect.y))
         
-        # Pacman consumes pellet        
+                    # draw number using pre-created font
+                    text = font.render(f"{int(node.threat_level)}", True, (255, 255, 255))
+                    screen.blit(text, (tile.rect.x + 2, tile.rect.y + 2))
+
+    # Update graph with current ghost positions and threat levels
+    env.create_graph(threat_agents= chasers_list, max_threat_level= config["max_threat_level"], decay_rate= config["decay_rate"])
+
+    # Move agents with time delay
+    current_time = pg.time.get_ticks()
+    if current_time - last_move_time >= move_delay:
+        for agent in eater_list + chasers_list:
+            agent.move()
+
+
+        # Pacman consumes pellet
         env.grid[eater.current_position[0]][eater.current_position[1]].has_pellet = False
-        
-        last_move_time = current_time        
-           
-    eater.draw(screen)   
-    seeker.draw(screen)
-    hunter.draw(screen)
-    pursuer.draw(screen)
-    catcher.draw(screen)             
-    
-    
+
+        last_move_time = current_time
+
+    # Draw agents
+    for agent in eater_list + chasers_list:
+        agent.draw(screen)
+
     pg.display.flip()
     clock.tick(60)
 

@@ -102,7 +102,7 @@ class Environment():
                     self.grid[y][x].hideout = True  
         
                   
-    def create_graph(self, threat_agents_positions:list[tuple[int]], max_threat_level:float, decay_rate:float) -> None:   
+    def create_graph(self, threat_agents:list, max_threat_level:float, decay_rate:float) -> None:   
         """
         Creates a graph representation of the environment and propagates threat levels from agents.
     
@@ -174,10 +174,10 @@ class Environment():
                     row_nodes[(element.y, element.x)] = new_node
             return row_nodes
     
-        def add_threat_levels(graph:dict[tuple:list[tuple[int]]], threat_agents_positions:list[tuple], max_threat_level:int) -> None:            
-            for threat_agent_position in threat_agents_positions:  
+        def add_threat_levels(graph:dict[tuple:list[tuple[int]]], threat_agents:list, max_threat_level:int) -> None:            
+            for agent in threat_agents:
                 queue = []
-                queue.append((threat_agent_position, 0))
+                queue.append((agent.current_position, 0))
                 
                 while len(queue) > 0: 
                     current_pos, distance = queue.pop(0)         
@@ -200,7 +200,7 @@ class Environment():
                 graph.update(future.result())    
                                                                        
         self.current_graph = graph        
-        add_threat_levels(self.current_graph, threat_agents_positions = threat_agents_positions, max_threat_level = max_threat_level)
+        add_threat_levels(self.current_graph, threat_agents = threat_agents, max_threat_level = max_threat_level)
         
         
 
