@@ -1,5 +1,6 @@
 import pygame as pg
-
+import math
+from concurrent.futures import ThreadPoolExecutor
 
 class Tile ():
     """
@@ -17,7 +18,12 @@ class Tile ():
     
     def __init__(self, x:int, y:int, tile_size:int):
         self.rect = pg.Rect(x * tile_size, y * tile_size, tile_size, tile_size)
+        self.x = x
+        self.y = y
         self.walkable = False
+        self.has_pellet = False
+        self.hideout = False
+        self.door = False
         
         
 class Environment():
@@ -36,6 +42,7 @@ class Environment():
     
     def __init__(self):
         self.grid = []
+        self.current_graph = []
         
     def fill_matrix (self, height:int, width:int, tile_size:int) -> list[list[int]]:
         """
@@ -68,11 +75,12 @@ class Environment():
     
         Parameters
         ----------
-        layout : list[list[int]]
+        layout : list[list[string]]
             A 2D list representing the environment layout.
             Each element should be a string indicating the type of tile:
-            - "0" or 0 : walkable tile
-            - "1" or 1 : unwalkable tile (wall)
+            - "0" : walkable tile 
+            - "1" : unwalkable tile 
+            - "2" : hideout tile
     
         Returns
         -------
@@ -81,10 +89,128 @@ class Environment():
         Notes
         -----
         Updates the `self.grid` attribute. Each cell's `walkable` property is set
-        to True if the corresponding layout element is "0".
+        to True if the corresponding layout element is "0". `has_pellet` property is also set to True
         """
         
         for y, row in enumerate(layout):
             for x, char in enumerate(row):
-                if char == "0":  # walkable
+                if char == "0":  # walkable and pellet
                     self.grid[y][x].walkable = True
+                    self.grid[y][x].has_pellet = True
+                    
+                if char == "2":  # ghost hideout
+                    self.grid[y][x].hideout = True  
+        
+                  
+    def create_graph(self, threat_agents_positions:list[tuple], max_threat_level:int) -> None:   
+        """
+        Creates a graph representation of the environment and propagates threat levels from agents.
+    
+        Each walkable tile becomes a node in the graph. Nodes store their coordinates, 
+        whether they contain a pellet, their current threat level, and a list of adjacent walkable tiles.
+    
+        Threat levels are propagated from specified agent positions using exponential decay, 
+        decreasing as distance from the agent increases.
+    
+        Parameters
+        ----------
+        threat_agents_positions : list of tuple
+            List of (y, x) coordinates representing positions of agents (e.g., ghosts) 
+            that generate threat.
+        max_threat_level : float
+            The maximum threat level assigned at the agent's position.
+    
+        Returns
+        -------
+        None            
+    
+        Notes
+        -----
+        The resulting graph is stored in `self.current_graph`. Each node contains:
+            - coord : tuple of (y, x)
+            - has_pellet : bool
+            - threat_level : float
+            - adjacent_tiles : list of neighboring node coordinates
+        - The graph is represented as a dictionary: keys are (y, x) coordinates, 
+          values are node objects.
+        - Threat propagation uses BFS and exponential decay:
+            threat = max_threat_level * exp(-k * distance)
+        - Distance is measured as steps along walkable tiles.
+        - ThreadPoolExecutor is used to parallelize row processing for faster graph creation.
+        """
+        
+        class node():
+            def __init__(self):
+                self.coord = None
+                self.has_pellet = None
+                self.threat_level = 1
+                self.adjacent_tiles = []                
+       
+        def process_row(row:list[int], y:int, grid:list[list[int]]) -> None:
+            row_nodes = {}
+            for element in row:
+                if element.walkable:
+                    new_node = node()
+                    new_node.coord = (element.y,element.x)
+                    new_node.has_pellet = element.has_pellet
+                    new_node.threat_level = 1
+                    new_node.adjacent_tiles = []      
+        
+                    # Down
+                    if grid[element.y + 1][element.x].walkable:
+                        new_node.adjacent_tiles.append((element.y + 1, element.x))
+                    # Up
+                    if grid[element.y - 1][element.x].walkable:
+                        new_node.adjacent_tiles.append((element.y - 1, element.x))
+                    # Right
+                    if grid[element.y][element.x + 1].walkable:
+                        new_node.adjacent_tiles.append((element.y, element.x + 1))
+                    # Left
+                    if grid[element.y][element.x - 1].walkable:
+                        new_node.adjacent_tiles.append((element.y, element.x - 1))
+        
+                    row_nodes[(element.y, element.x)] = new_node
+            return row_nodes
+    
+        def add_threat_levels(graph:dict[tuple:list[tuple]], threat_agents_positions:list[tuple], max_threat_level:int) -> None:            
+            for threat_agent_position in threat_agents_positions:  
+                queue = []
+                queue.append((threat_agent_position, 0))
+                
+                while len(queue) > 0: 
+                    current_pos, distance = queue.pop(0)         
+                    node = graph[current_pos]
+                    new_threat = max_threat_level * math.exp(-0.15 * distance)  # parametrizar aca el decay
+                    
+                    if new_threat <= node.threat_level:    
+                        continue
+                    
+                    node.threat_level = new_threat 
+                    
+                    for neighbor_coord in node.adjacent_tiles:
+                        queue.append((neighbor_coord, distance + 1))  
+        
+        
+        graph = {}
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_row, row, y, self.grid) for y, row in enumerate(self.grid)]            
+            for future in futures:
+                graph.update(future.result())    
+                                                                       
+        self.current_graph = graph        
+        add_threat_levels(self.current_graph, threat_agents_positions = threat_agents_positions, max_threat_level = max_threat_level)
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+                      
+                

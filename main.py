@@ -3,9 +3,10 @@
 ## cant walkables vs la cantidad que tiene que ser en cada mapa
 
 
-#agente tienen algo que sea ver siguiente bloque. ese ver bloque llamo al grid walkable
 
-#fijate igual por que algunos algoritmos son de grafos
+
+
+#agrega a los walkable que tienen pellet. tamb algunos que tengan el pellet grande
 
 #agregar atributo extra de puerta. si es peurta y esta en true o algo asi lo 
 #pones como walkable
@@ -99,7 +100,7 @@ with open("conf/env.yaml") as f:
                     
 env = Environment()
 env.fill_matrix(config["height"], config["width"], config["tile_size"])
-env.load_layout(config["original_layout"])
+env.load_layout(config["default_layout"])
 
 
 
@@ -108,11 +109,12 @@ class Agent():
     def __init__(self, row, column, enviroment):
         self.current_position = (row,column)
         self.enviroment = enviroment
-        self.directions = {0:"up", 1:"right", 2:"down", 3:"left"}
+        self.directions = {0:"up", 1:"right", 2:"down", 3:"left"}        
+        self.states = []
+        self.current_state = ""
         self.color = (0,0,0)
     
-    def move(self):
-        
+    def move(self):        
         raise NotImplementedError("Subclasses must implement move()")       
     
     def _check_valid_movement(self, next_position):
@@ -153,35 +155,16 @@ class Pacman(Agent):
         
       
         
-pacman_1 = Pacman(5,5,env)
-pacman_2 = Pacman(5,5,env)
-pacman_3 = Pacman(5,5,env)
-pacman_4 = Pacman(5,5,env)
-pacman_5 = Pacman(5,5,env)
-pacman_6 = Pacman(5,5,env)
-pacman_7 = Pacman(5,5,env)
-pacman_8 = Pacman(5,5,env)
-pacman_9 = Pacman(5,5,env)
-pacman_10 = Pacman(5,5,env)
-pacman_11 = Pacman(5,5,env)
-pacman_12 = Pacman(5,5,env)
-pacman_13 = Pacman(5,5,env)
-pacman_14 = Pacman(5,5,env)
-pacman_15 = Pacman(5,5,env)
-pacman_16 = Pacman(5,5,env)
-pacman_17 = Pacman(5,5,env)
-pacman_18 = Pacman(5,5,env)
-pacman_19 = Pacman(5,5,env)
+pacman = Pacman(5,5,env)
+
 
 # --- Setup display ---
 screen = pg.display.set_mode((config["width"] * config["tile_size"], config["height"] * config["tile_size"]))
 pg.display.set_caption("Grid with Walls")
 
 clock = pg.time.Clock()
-
 last_move_time = 0 
-move_delay = 200    # move every 200 ms (0.2 seconds) 
-
+move_delay = 200    
 
 # --- Game loop ---
 running = True
@@ -199,54 +182,36 @@ while running:
             if env.grid[y][x].walkable == False:
                 pg.draw.rect(screen, tuple(config["unwalkable_tile_color"]), env.grid[y][x].rect)
             else:
-                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), env.grid[y][x].rect)               
+                pg.draw.rect(screen, tuple(config["walkable_tile_color"]), env.grid[y][x].rect)       
+            
+            # Draw pellets
+            if env.grid[y][x].has_pellet == True:                
+                center_x = env.grid[y][x].rect.x + env.grid[y][x].rect.width // 2
+                center_y = env.grid[y][x].rect.y + env.grid[y][x].rect.height // 2     
+                radius = env.grid[y][x].rect.width // 6
+                pg.draw.circle(screen, tuple(config["pellet_color"]), (center_x, center_y), radius)
                 
-      
+            # Draw hideout
+            if env.grid[y][x].hideout == True:
+                pg.draw.rect(screen, tuple(config["hideout_tile_color"]), env.grid[y][x].rect)      
+            
+                
+    # Check time delay to move agents  
     current_time = pg.time.get_ticks()  
-    if current_time - last_move_time >= move_delay:
+    if current_time - last_move_time >= move_delay:        
+        pacman.move()         
         
-        pacman_1.move()        
-        pacman_2.move()   
-        pacman_3.move()   
-        pacman_4.move()   
-        pacman_5.move()   
-        pacman_6.move()   
-        pacman_7.move()   
-        pacman_8.move()   
-        pacman_9.move()   
-        pacman_10.move()   
-        pacman_11.move()   
-        pacman_12.move()   
-        pacman_13.move()   
-        pacman_14.move()   
-        pacman_15.move()   
-        pacman_16.move()   
-        pacman_17.move()   
-        pacman_18.move()   
-        pacman_19.move()       
+        # Pacman consumes pellet        
+        env.grid[pacman.current_position[0]][pacman.current_position[1]].has_pellet = False
         
         last_move_time = current_time
-           
-    pacman_1.draw()        
-    pacman_2.draw()  
-    pacman_3.draw()  
-    pacman_4.draw()   
-    pacman_5.draw()  
-    pacman_6.draw()   
-    pacman_7.draw()  
-    pacman_8.draw()    
-    pacman_9.draw()    
-    pacman_10.draw()  
-    pacman_11.draw()   
-    pacman_12.draw()  
-    pacman_13.draw()   
-    pacman_14.draw()  
-    pacman_15.draw()  
-    pacman_16.draw()  
-    pacman_17.draw()  
-    pacman_18.draw()  
-    pacman_19.draw()   
         
+        
+        
+        
+        # update graph. pellet to 0 because its false. ghosts with positions from the agent.move() and current pos functions
+           
+    pacman.draw()                
     
 
     pg.display.flip()
@@ -254,4 +219,9 @@ while running:
 
 pg.quit()
 sys.exit()
+
+
+
+# si pacman pasa por arriba, chau pellet
+
 
