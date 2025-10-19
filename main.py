@@ -83,8 +83,8 @@ Eaten	BFS	Straight to home.
 import sys
 import pygame as pg
 import yaml
-from random import randint
 from environment.env import Environment
+from agents.agents import Eater, Seeker, Hunter, Pursuer, Catcher
 
 if not pg.font:
     print("Warning, fonts disabled")
@@ -100,62 +100,14 @@ with open("conf/env.yaml") as f:
                     
 env = Environment()
 env.fill_matrix(config["height"], config["width"], config["tile_size"])
-env.load_layout(config["default_layout"])
-
-
-
-class Agent():
-    
-    def __init__(self, row, column, enviroment):
-        self.current_position = (row,column)
-        self.enviroment = enviroment
-        self.directions = {0:"up", 1:"right", 2:"down", 3:"left"}        
-        self.states = []
-        self.current_state = ""
-        self.color = (0,0,0)
-    
-    def move(self):        
-        raise NotImplementedError("Subclasses must implement move()")       
-    
-    def _check_valid_movement(self, next_position):
-        row, col = next_position              
-        try:
-            return self.enviroment.grid[row][col].walkable
-        except IndexError:
-            return False    
-        
-    def draw(self):       
-        tile = self.enviroment.grid[self.current_position[0]][self.current_position[1]]  
-        center_x = tile.rect.x + tile.rect.width // 2
-        center_y = tile.rect.y + tile.rect.height // 2     
-        radius = tile.rect.width // 2
-        pg.draw.circle(screen, (self.color), (center_x, center_y), radius)
-        
- 
-class Pacman(Agent):
-    def __init__(self, row, column, enviroment):
-       super().__init__(row, column, enviroment)  
-       self.color = (randint(0,254), randint(0,254), randint(0,254))  
-       
-    def move(self):
-        can_move = False               
-        while can_move == False:
-            direction = self.directions[randint(0,3)]            
-            if direction == "up":
-                next_position = (self.current_position[0] - 1, self.current_position[1])
-            elif direction == "right":
-                next_position = (self.current_position[0], self.current_position[1] + 1)
-            elif direction == "down":
-                next_position = (self.current_position[0] + 1, self.current_position[1])
-            elif direction == "left":
-                next_position = (self.current_position[0], self.current_position[1] - 1)           
-            can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position        
-        
-        
+env.load_layout(config["default_layout"])   
       
         
-pacman = Pacman(5,5,env)
+eater = Eater(5,5,env)
+seeker = Seeker(5,6,env)
+hunter = Hunter(20,6,env)
+pursuer = Pursuer(26,24,env)
+catcher = Catcher(14,18,env)
 
 
 # --- Setup display ---
@@ -164,7 +116,7 @@ pg.display.set_caption("Grid with Walls")
 
 clock = pg.time.Clock()
 last_move_time = 0 
-move_delay = 200    
+move_delay = 1000    
 
 # --- Game loop ---
 running = True
@@ -193,27 +145,35 @@ while running:
                 
             # Draw hideout
             if env.grid[y][x].hideout == True:
-                pg.draw.rect(screen, tuple(config["hideout_tile_color"]), env.grid[y][x].rect)      
+                pg.draw.rect(screen, tuple(config["hideout_tile_color"]), env.grid[y][x].rect)   
+                
+
+    env.create_graph(threat_agents_positions = [seeker.current_position, hunter.current_position,
+                                                pursuer.current_position, catcher.current_position], 
+                                                max_threat_level = 50, decay_rate = 0.15)
             
                 
     # Check time delay to move agents  
     current_time = pg.time.get_ticks()  
     if current_time - last_move_time >= move_delay:        
-        pacman.move()         
+        eater.move()   
+        seeker.move()
+        hunter.move()
+        pursuer.move()
+        catcher.move()
         
         # Pacman consumes pellet        
-        env.grid[pacman.current_position[0]][pacman.current_position[1]].has_pellet = False
+        env.grid[eater.current_position[0]][eater.current_position[1]].has_pellet = False
         
-        last_move_time = current_time
-        
-        
-        
-        
-        # update graph. pellet to 0 because its false. ghosts with positions from the agent.move() and current pos functions
+        last_move_time = current_time        
            
-    pacman.draw()                
+    eater.draw(screen)   
+    seeker.draw(screen)
+    hunter.draw(screen)
+    pursuer.draw(screen)
+    catcher.draw(screen)             
     
-
+    
     pg.display.flip()
     clock.tick(60)
 

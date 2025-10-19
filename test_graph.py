@@ -3,6 +3,7 @@ import yaml
 from environment.env import Environment
 import matplotlib.pyplot as plt
 
+
 if not pg.font:
     print("Warning, fonts disabled")
 if not pg.mixer:
@@ -20,7 +21,7 @@ env.fill_matrix(config["height"], config["width"], config["tile_size"])
 env.load_layout(config["default_layout"])
 
 
-env.create_graph(threat_agents_positions = [(5,5),(20,6),(26,24),(14,18)], max_threat_level = 50)
+env.create_graph(threat_agents_positions = [(5,5),(20,6),(26,24),(14,18)], max_threat_level = 50, decay_rate = 0.15)
 
 
 def graph_to_threat_matrix(graph, width, height): 
