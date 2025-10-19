@@ -104,10 +104,10 @@ env.load_layout(config["default_layout"])
       
         
 eater = Eater(5,5,env)
-seeker = Seeker(5,6,env)
+seeker = Seeker(20,6,env)
 hunter = Hunter(20,6,env)
-pursuer = Pursuer(26,24,env)
-catcher = Catcher(14,18,env)
+pursuer = Pursuer(20,6,env)
+catcher = Catcher(20,6,env)
 
 eater_list = [eater]
 chasers_list = []
@@ -119,7 +119,7 @@ pg.display.set_caption("Grid with Walls")
 
 clock = pg.time.Clock()
 last_move_time = 0 
-move_delay = 1000    
+move_delay = 100    
 
 DEBUG = False  # Set to False to hide threat heatmap overlay
 font = pg.font.SysFont(None, 16)
@@ -176,7 +176,7 @@ while running:
     current_time = pg.time.get_ticks()
     if current_time - last_move_time >= move_delay:
         for agent in eater_list + chasers_list:
-            agent.move()
+            agent.move(env.current_graph)
 
 
         # Pacman consumes pellet

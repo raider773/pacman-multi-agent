@@ -1,5 +1,6 @@
 import pygame as pg
 from random import randint
+import heapq 
 
 pg.init()
 
@@ -36,20 +37,49 @@ class Eater(Agent):
        super().__init__(row, column, enviroment)  
        self.color = (255, 255, 0)  
        
-    def move(self):
-        can_move = False               
-        while can_move == False:
-            direction = self.directions[randint(0,3)]            
-            if direction == "up":
-                next_position = (self.current_position[0] - 1, self.current_position[1])
-            elif direction == "right":
-                next_position = (self.current_position[0], self.current_position[1] + 1)
-            elif direction == "down":
-                next_position = (self.current_position[0] + 1, self.current_position[1])
-            elif direction == "left":
-                next_position = (self.current_position[0], self.current_position[1] - 1)           
-            can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position    
+    def move(self, graph):           
+        next_position = self._eat_pellets(graph)
+        if self._check_valid_movement(next_position):
+            self.current_position = next_position        
+        
+    def _eat_pellets(self, graph):
+        starting_position = self.current_position
+        open_list = []
+        path = {}
+        cost_values = {starting_position: 0}
+        heapq.heappush(open_list, (0,starting_position))       
+        
+        
+        nodes_with_pellets = []
+        for node in graph.keys():
+            if graph[node].has_pellet :
+                nodes_with_pellets.append(node)
+        
+        while open_list:
+            current_priority, current_node = heapq.heappop(open_list)
+            if graph[current_node].has_pellet:
+                break
+            for adjacent_tile in graph[current_node].adjacent_tiles:
+                new_cost = cost_values[current_node] + 1
+                if adjacent_tile not in cost_values or new_cost < cost_values[current_node]:
+                    cost_values[adjacent_tile] = new_cost
+                    path[adjacent_tile] = current_node                     
+                    
+                    h = min(abs(adjacent_tile[0] - pellet[0]) + abs(adjacent_tile[1] - pellet[1]) for pellet in nodes_with_pellets)                          
+                    priority = new_cost + h
+                    
+                    heapq.heappush(open_list, (priority, adjacent_tile))            
+        
+        target = current_node      
+        
+        if target == starting_position:
+                return starting_position
+            
+        if target != starting_position:
+            next_move = target
+            while path[next_move] != starting_position:
+                next_move = path[next_move]            
+        return next_move          
         
         
 class Seeker(Agent):
