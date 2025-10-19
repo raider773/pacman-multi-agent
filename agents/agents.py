@@ -66,7 +66,7 @@ class Eater(Agent):
                     path[adjacent_tile] = current_node                     
                     
                     h = min(abs(adjacent_tile[0] - pellet[0]) + abs(adjacent_tile[1] - pellet[1]) for pellet in nodes_with_pellets)                          
-                    priority = new_cost + h
+                    priority = new_cost + h + graph[adjacent_tile].threat_level   
                     
                     heapq.heappush(open_list, (priority, adjacent_tile))            
         
@@ -87,7 +87,7 @@ class Seeker(Agent):
        super().__init__(row, column, enviroment)  
        self.color = (0, 100, 100)
        
-    def move(self):
+    def move(self, graph):
         can_move = False               
         while can_move == False:
             direction = self.directions[randint(0,3)]            
@@ -107,7 +107,7 @@ class Hunter(Agent):
        super().__init__(row, column, enviroment)  
        self.color = (200, 0, 200)  
        
-    def move(self):
+    def move(self, graph):
         can_move = False               
         while can_move == False:
             direction = self.directions[randint(0,3)]            
@@ -128,7 +128,7 @@ class Pursuer(Agent):
        super().__init__(row, column, enviroment)  
        self.color = (70, 0, 150)  
        
-    def move(self):
+    def move(self, graph):
         can_move = False               
         while can_move == False:
             direction = self.directions[randint(0,3)]            
@@ -149,7 +149,7 @@ class Catcher(Agent):
        super().__init__(row, column, enviroment)  
        self.color = (250, 120, 0)  
        
-    def move(self):
+    def move(self, graph):
         can_move = False               
         while can_move == False:
             direction = self.directions[randint(0,3)]            
