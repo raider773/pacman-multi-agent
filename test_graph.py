@@ -34,7 +34,6 @@ def graph_to_threat_matrix(graph, width, height):
 
 
 threat_matrix = graph_to_threat_matrix(env.current_graph, config["width"], config["height"])
-# threat_matrix is your 2D list of threat levels
 plt.imshow(threat_matrix, cmap='hot', interpolation='nearest')
 plt.colorbar(label='Threat Level')
 plt.title("Threat Level Heatmap")
@@ -45,8 +44,8 @@ import numpy as np
 
 # Parameters
 max_threat = 50
-distances = np.arange(0, 15, 1)  # distances from 0 to 14
-k_values = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]       # different decay rates
+distances = np.arange(0, 15, 1) 
+k_values = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]      
 
 plt.figure(figsize=(8,5))
 

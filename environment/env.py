@@ -21,10 +21,7 @@ class Tile ():
         self.x = x
         self.y = y
         self.walkable = False
-        self.has_pellet = False
-        self.hideout = False
-        self.door = False
-        
+        self.has_pellet = False        
         
 class Environment():
     """
@@ -71,7 +68,9 @@ class Environment():
             self.grid.append(row)
     
     def load_layout(self, layout:list[list[int]]) -> None:
-        """
+        """        
+        Updates the `self.grid` attribute. Each cell's `walkable` property is set
+        to True if the corresponding layout element is "0". `has_pellet` property is also set to True
     
         Parameters
         ----------
@@ -79,28 +78,18 @@ class Environment():
             A 2D list representing the environment layout.
             Each element should be a string indicating the type of tile:
             - "0" : walkable tile 
-            - "1" : unwalkable tile 
-            - "2" : hideout tile
+            - "1" : unwalkable tile             
     
         Returns
         -------
-        None
-    
-        Notes
-        -----
-        Updates the `self.grid` attribute. Each cell's `walkable` property is set
-        to True if the corresponding layout element is "0". `has_pellet` property is also set to True
+        None  
         """
         
         for y, row in enumerate(layout):
             for x, char in enumerate(row):
                 if char == "0":  # walkable and pellet
                     self.grid[y][x].walkable = True
-                    self.grid[y][x].has_pellet = True
-                    
-                if char == "2":  # ghost hideout
-                    self.grid[y][x].hideout = True  
-        
+                    self.grid[y][x].has_pellet = True        
                   
     def create_graph(self, threat_agents:list, max_threat_level:float, decay_rate:float) -> None:   
         """
@@ -151,12 +140,14 @@ class Environment():
         def process_row(row:list[int], y:int, grid:list[list[int]]) -> None:
             row_nodes = {}
             for element in row:
-                if element.walkable:
+                if element.walkable: # Only add nodes that are walkable
                     new_node = node()
                     new_node.coord = (element.y,element.x)
                     new_node.has_pellet = element.has_pellet
                     new_node.threat_level = 1
-                    new_node.adjacent_tiles = []      
+                    new_node.adjacent_tiles = []     
+                    
+                    # Create adjacnecy list
         
                     # Down
                     if grid[element.y + 1][element.x].walkable:

@@ -1,9 +1,22 @@
 import pygame as pg
-from random import randint
 import heapq 
+from random import randint
 
 pg.init()
 
+
+
+#agregar velocidades en algun momento (no mas casillas, sino mas movimientos mientras lkos otros estan quietos sria creo)
+
+
+#finite state machine (FSM):
+    #- Pacman [eat]
+    #- chasers [idle, chase, patrol]
+    
+    
+#Add small randomness or “hesitation” to humanize them.
+
+    
 class Agent():
     
     def __init__(self, row, column, enviroment):
@@ -14,8 +27,8 @@ class Agent():
         self.current_state = ""
         self.color = (0,0,0)
     
-    def move(self):        
-        raise NotImplementedError("Subclasses must implement move()")       
+    def move(self):         
+        raise NotImplementedError("Subclasses must implement move()")     
     
     def _check_valid_movement(self, next_position):
         row, col = next_position              
@@ -36,9 +49,12 @@ class Eater(Agent):
     def __init__(self, row, column, enviroment):
        super().__init__(row, column, enviroment)  
        self.color = (255, 255, 0)  
+       self.states = ["eat"]
+       self.current_state = "eat" 
        
-    def move(self, graph):           
-        next_position = self._eat_pellets(graph)
+    def move(self, graph):         
+        if self.current_state == "eat":
+            next_position = self._eat_pellets(graph)     
         if self._check_valid_movement(next_position):
             self.current_position = next_position        
         
@@ -85,7 +101,7 @@ class Eater(Agent):
 class Seeker(Agent):
     def __init__(self, row, column, enviroment):
        super().__init__(row, column, enviroment)  
-       self.color = (0, 100, 100)
+       self.color = (0, 100, 100)      
        
     def move(self, graph):
         can_move = False               
@@ -100,66 +116,5 @@ class Seeker(Agent):
             elif direction == "left":
                 next_position = (self.current_position[0], self.current_position[1] - 1)           
             can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position   
-
-class Hunter(Agent):
-    def __init__(self, row, column, enviroment):
-       super().__init__(row, column, enviroment)  
-       self.color = (200, 0, 200)  
-       
-    def move(self, graph):
-        can_move = False               
-        while can_move == False:
-            direction = self.directions[randint(0,3)]            
-            if direction == "up":
-                next_position = (self.current_position[0] - 1, self.current_position[1])
-            elif direction == "right":
-                next_position = (self.current_position[0], self.current_position[1] + 1)
-            elif direction == "down":
-                next_position = (self.current_position[0] + 1, self.current_position[1])
-            elif direction == "left":
-                next_position = (self.current_position[0], self.current_position[1] - 1)           
-            can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position  
+        self.current_position = next_position 
         
-        
-class Pursuer(Agent):
-    def __init__(self, row, column, enviroment):
-       super().__init__(row, column, enviroment)  
-       self.color = (70, 0, 150)  
-       
-    def move(self, graph):
-        can_move = False               
-        while can_move == False:
-            direction = self.directions[randint(0,3)]            
-            if direction == "up":
-                next_position = (self.current_position[0] - 1, self.current_position[1])
-            elif direction == "right":
-                next_position = (self.current_position[0], self.current_position[1] + 1)
-            elif direction == "down":
-                next_position = (self.current_position[0] + 1, self.current_position[1])
-            elif direction == "left":
-                next_position = (self.current_position[0], self.current_position[1] - 1)           
-            can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position  
-        
-        
-class Catcher(Agent):
-    def __init__(self, row, column, enviroment):
-       super().__init__(row, column, enviroment)  
-       self.color = (250, 120, 0)  
-       
-    def move(self, graph):
-        can_move = False               
-        while can_move == False:
-            direction = self.directions[randint(0,3)]            
-            if direction == "up":
-                next_position = (self.current_position[0] - 1, self.current_position[1])
-            elif direction == "right":
-                next_position = (self.current_position[0], self.current_position[1] + 1)
-            elif direction == "down":
-                next_position = (self.current_position[0] + 1, self.current_position[1])
-            elif direction == "left":
-                next_position = (self.current_position[0], self.current_position[1] - 1)           
-            can_move = self._check_valid_movement(next_position)       
-        self.current_position = next_position  
